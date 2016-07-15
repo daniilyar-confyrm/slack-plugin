@@ -100,4 +100,13 @@ public class StandardSlackServiceTest {
         service.setHttpClient(httpClientStub);
         assertTrue(service.publish("message"));
     }
+    
+    @Test
+    public void successfulPublishWithPullRequestMergeMessage() {
+        StandardSlackServiceStub service = new StandardSlackServiceStub("domain", "token", "#room1");
+        HttpClientStub httpClientStub = new HttpClientStub();
+        httpClientStub.setHttpStatus(HttpStatus.SC_OK);
+        service.setHttpClient(httpClientStub);
+        assertTrue(service.publish("message PR ", "good"));
+    }
 }

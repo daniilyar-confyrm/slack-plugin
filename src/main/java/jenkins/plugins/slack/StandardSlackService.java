@@ -5,6 +5,9 @@ import org.apache.commons.httpclient.HttpStatus;
 import org.apache.commons.httpclient.methods.PostMethod;
 
 import org.json.JSONObject;
+
+import com.google.common.base.Strings;
+
 import org.json.JSONArray;
 
 import java.util.logging.Level;
@@ -39,7 +42,7 @@ public class StandardSlackService implements SlackService {
         boolean result = true;
         for (String roomId : roomIds) {
             String url = "https://" + teamDomain + "." + host + "/services/hooks/jenkins-ci?token=" + token;
-            logger.info("Posting: to " + roomId + " on " + teamDomain + " using " + url +": " + message + " " + color);
+            logger.info("Posting: to " + roomId + " on " + teamDomain + " using " + url + ": " + message + " " + color);
             HttpClient client = getHttpClient();
             PostMethod post = new PostMethod(url);
             JSONObject json = new JSONObject();
@@ -56,6 +59,22 @@ public class StandardSlackService implements SlackService {
                 attachment.put("fallback", message);
                 attachment.put("color", color);
                 attachment.put("fields", fields);
+
+                if (message.contains("PR ") && "good".equals(color)) {
+                    JSONObject mergeButton = new JSONObject();
+
+                    String prNumber = System.getenv("ghprbPullId");
+                    mergeButton.put("name", "merge_pr_" + prNumber);
+                    mergeButton.put("text", "Merge PR");
+                    mergeButton.put("type", "button");
+
+                    mergeButton.put("value", Strings.nullToEmpty(System.getenv("ghprbPullLink")));
+
+                    JSONArray actions = new JSONArray();
+                    actions.put(mergeButton);
+                    attachment.put("actions", actions);
+                }
+
                 JSONArray mrkdwn = new JSONArray();
                 mrkdwn.put("pretext");
                 mrkdwn.put("text");
@@ -71,11 +90,10 @@ public class StandardSlackService implements SlackService {
                 post.getParams().setContentCharset("UTF-8");
                 int responseCode = client.executeMethod(post);
                 String response = post.getResponseBodyAsString();
-                if(responseCode != HttpStatus.SC_OK) {
+                if (responseCode != HttpStatus.SC_OK) {
                     logger.log(Level.WARNING, "Slack post may have failed. Response: " + response);
                     result = false;
-                }
-                else {
+                } else {
                     logger.info("Posting succeeded");
                 }
             } catch (Exception e) {
@@ -103,7 +121,7 @@ public class StandardSlackService implements SlackService {
                     // and
                     // http://svn.apache.org/viewvc/httpcomponents/oac.hc3x/trunk/src/examples/BasicAuthenticationExample.java?view=markup
                     client.getState().setProxyCredentials(AuthScope.ANY,
-                        new UsernamePasswordCredentials(username, password));
+                            new UsernamePasswordCredentials(username, password));
                 }
             }
         }
